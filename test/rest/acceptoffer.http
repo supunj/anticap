@@ -1,0 +1,4 @@
+@nodeid = f575499872f6286ff1511c0216f0e4b441391c85d61d55cf4fa2912de0ac67d9
+@offerid = d86770c5b83a7e61b28ff64a183eca88418c53e522235b8facfa54f91806b2e2
+PUT http://localhost:8000/api/v1/acceptoffer/{{nodeid}}/{{offerid}}
+content-type: text/plain

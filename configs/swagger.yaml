@@ -1,0 +1,10 @@
+basePath: /api/v1
+host: localhost:8000
+info:
+  contact: {}
+  description: Get the phone number, send the verification code
+  license: {}
+  title: Register Node API
+  version: "1.0"
+paths: {}
+swagger: "2.0"

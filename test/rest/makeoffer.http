@@ -1,0 +1,5 @@
+@nodeid = f575499872f6286ff1511c0216f0e4b441391c85d61d55cf4fa2912de0ac67d9
+@requestid = 2f630d6abe17e56436fce970b582e91994aa314ec3bdd701f448fa5ff6de8b9d
+@offer = testoffer
+POST http://localhost:8000/api/v1/makeoffer/{{nodeid}}/{{requestid}}/{{offer}}
+content-type: text/plain

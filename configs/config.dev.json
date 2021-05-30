@@ -1,0 +1,24 @@
+{
+  "host": {
+    "address": "localhost",
+    "port": 8000
+  },
+  "datastore": {
+    "redis": {
+      "host": "192.168.122.143",
+      "port": 6379,
+      "password": "",
+      "nodes-db": 0,
+      "req-res-db": 1
+    }
+  },
+  "log" : {
+    "outout" : "console",
+    "default-log-file-path" : "/tmp/thexapp.log"
+  },
+  "ssl" : {
+    "cert-path" : "/mnt/hdd1/gitlab/thexapp-server/res/ssl/server.crt",
+    "key" : "/mnt/hdd1/gitlab/thexapp-server/res/ssl/server.key",
+    "port" : 443
+  }
+}

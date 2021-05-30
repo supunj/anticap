@@ -1,0 +1,5 @@
+@nodeid = f575499872f6286ff1511c0216f0e4b441391c85d61d55cf4fa2912de0ac67d9
+@channel = taxi
+@request = {"nodeid": "f575499872f6286ff1511c0216f0e4b441391c85d61d55cf4fa2912de0ac67d9", "channel": "taxi", "lat": 0.31272703409194946,    "lon": 0.6940357685089111,    "name": "test",    "message": "test"}
+POST http://localhost:8000/api/v1/sendrequest/{{nodeid}}/{{channel}}/{{request}}
+content-type: text/plain
