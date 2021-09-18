@@ -71,3 +71,10 @@ func TestDynamicType(t *testing.T) {
 	obj, err := json_util.GetObject([]byte("{\n    \"id\": \"test\",\n    \"active\": true,\n    \"avatar\": {\n        \"id\": \"test\",\n        \"mobile\": \"test\",\n        \"active\": false,\n        \"vcode\": \"test\",\n        \"gender\": \"test\",\n        \"bday\": \"2031-09-21T23:20:10+05:30\",\n        \"location\": {\n            \"lon\": 0.5412147045135498,\n            \"lat\": 0.8362488746643066\n        },\n        \"availability\": false,\n        \"key\": {\n            \"privatekey\": \"test\",\n            \"publickey\": \"test\"\n        },\n        \"rating\": {},\n        \"subscription\": [\n            {\n                \"channel\": \"test\",\n                \"as\": \"test\"\n            },\n            {\n                \"channel\": \"test\",\n                \"as\": \"test\"\n            }\n        ]\n    }\n}"), reflect.TypeOf(type_util.Node{}))
 	fmt.Println(obj, err)
 }
+
+func TestDynamicJSON(t *testing.T) {
+	error_res := type_util.CommonErrorResponse{}
+	datafiller.Fill(&error_res)
+	jsn, err := json_util.GetJSON(&error_res)
+	fmt.Println(string(jsn), err)
+}

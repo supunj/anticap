@@ -3,6 +3,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"io"
@@ -14,7 +15,7 @@ import (
 )
 
 // Returns the list of near by customer requests
-func getRequests(pRequest []byte) (type_util.ConsumerRequestList, error) {
+func getRequests(ctx context.Context, pRequest []byte) (type_util.ConsumerRequestList, error) {
 	var reqList type_util.ConsumerRequestList
 	var reqOK bool
 	var err error
@@ -24,7 +25,7 @@ func getRequests(pRequest []byte) (type_util.ConsumerRequestList, error) {
 		goto End
 	}
 
-	req.Node, err = db_util.GetNode(req.NodeID)
+	req.Node, err = db_util.GetNode(ctx, req.NodeID)
 	if err != nil {
 		goto End
 	}
@@ -35,7 +36,7 @@ func getRequests(pRequest []byte) (type_util.ConsumerRequestList, error) {
 	}
 
 	if reqOK {
-		reqList, err = findNearByNodes(req)
+		reqList, err = findNearByNodes(ctx, req)
 		if err != nil {
 			goto End
 		}
@@ -48,8 +49,8 @@ End:
 }
 
 // Find nearby nodes using redis' goe features
-func findNearByNodes(pRequest type_util.ProviderRequest) (type_util.ConsumerRequestList, error) {
-	return db_util.GetPendingConsumerRequests(pRequest.Channel, pRequest.ResultCount)
+func findNearByNodes(ctx context.Context, pRequest type_util.ProviderRequest) (type_util.ConsumerRequestList, error) {
+	return db_util.GetPendingConsumerRequests(ctx, pRequest.Channel, pRequest.ResultCount)
 }
 
 var digits = [...]byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
@@ -74,11 +75,11 @@ func GenerateVerificationCode() string {
 }
 
 // Get the offer by the offer id and validate
-func getAndValidateOffer(params map[string]string) (type_util.Offer, error) {
+func getAndValidateOffer(ctx context.Context, params map[string]string) (type_util.Offer, error) {
 	nodeID := string(params["nodeid"])
 	offerID := string(params["offerid"])
 
-	offer, err := db_util.GetOfferByOfferID(offerID)
+	offer, err := db_util.GetOfferByOfferID(ctx, offerID)
 	if err != nil {
 		goto End
 	}
@@ -97,11 +98,11 @@ End:
 }
 
 // Get the request from the id and validate
-func getAndValidateRequest(params map[string]string) (type_util.ConsumerRequest, error) {
+func getAndValidateRequest(ctx context.Context, params map[string]string) (type_util.ConsumerRequest, error) {
 	nodeID := string(params["nodeid"])
 	requestID := string(params["requestid"])
 
-	cRequest, err := db_util.GetPendingConsumerRequestByRequestID(requestID)
+	cRequest, err := db_util.GetPendingConsumerRequestByRequestID(ctx, requestID)
 	if err != nil || (type_util.ConsumerRequest{}) == cRequest {
 		err = errors.New("Error getting the consumer request")
 		goto End

@@ -19,13 +19,17 @@ import (
 )
 
 // Register handles the register node functionality
-// @Summary List accounts
-// @Description Get the phone number, send the verification code
-// @title Register Node API
-// @version 1.0
-// @host localhost:8000
-// @BasePath /api/v1
+// @Summary Register handles the register node functionality
+// @Description Register handles the register node functionality
+// @Tags register
+// @Accept json
+// @Produce json
+// @Success 200 {object} types.Node
+// @Router /register [post]
 func Register(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+	r.Header.Set("Content-Type", "application/json")
 	config_util.Log.Println("Register....")
 	params := mux.Vars(r)
 
@@ -40,22 +44,49 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	node.ID = crypt_util.GetHash(node.ID)
 	node.VCode = GenerateVerificationCode()
 
-	hnid, err := db_util.SaveNode(node)
+	hind, err := db_util.SaveNode(ctx, node)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Error!"))
 	} else {
 		sent := SendVerificationCode(node.VCode)
 
 		if sent {
-			w.Write([]byte(hnid + " - " + node.VCode))
+			var created_node type_util.Node
+			created_node, _ = db_util.GetNode(ctx, hind)
+			w.WriteHeader(http.StatusCreated)
+			json, _ := json_util.GetJSON(created_node)
+			w.Write(json)
 		} else {
+			w.WriteHeader(http.StatusRequestTimeout)
 			w.Write([]byte("Retry!"))
 		}
 	}
 }
 
+// Register handles the register node functionality
+// @Summary Register handles the register node functionality
+// @Description Register handles the register node functionality
+// @Tags register
+// @Accept json
+// @Produce json
+// @Success 200 {object} types.Node
+// @Router /register [post]
+/*func Register(w http.ResponseWriter, r *http.Request) {
+	config_util.Log.Println("Register....")
+	w.Header().Set("Content-Type", "application/json")
+	var node types.Node
+	json.NewDecoder(r.Body).Decode(&node)
+	node.ID = crypt_util.GetHash(node.ID)
+	node.VCode = GenerateVerificationCode()
+	hnid, err := db_util.SaveNode(node)
+	register = append(register, node)
+	json.NewEncoder(w).Encode(register)
+}*/
+
 // Verify the node via code
 func Verify(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	config_util.Log.Println("Verify....")
 	params := mux.Vars(r)
 
@@ -63,7 +94,7 @@ func Verify(w http.ResponseWriter, r *http.Request) {
 	vCode := string(params["vcode"])
 
 	var node type_util.Node
-	node, err := db_util.GetNode(nodeID)
+	node, err := db_util.GetNode(ctx, nodeID)
 	if err != nil {
 		w.Write([]byte("Error!\n"))
 		return
@@ -81,13 +112,13 @@ func Verify(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db_util.SaveKeys(nodeID, privateKey, publicKey)
+		err = db_util.SaveKeys(ctx, nodeID, privateKey, publicKey)
 		if err != nil {
 			w.Write([]byte("Error!\n"))
 			return
 		}
 
-		err = db_util.ActivateNode(nodeID)
+		err = db_util.ActivateNode(ctx, nodeID)
 		if err != nil {
 			w.Write([]byte("Activation error!\n"))
 		} else {
@@ -105,6 +136,7 @@ func UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 // Subscribe - Handle subscribe
 func Subscribe(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 
 	nodeID := string(params["nodeid"])
@@ -116,7 +148,7 @@ func Subscribe(w http.ResponseWriter, r *http.Request) {
 	subscription.Channel = channel
 	subscription.As = as
 
-	err := db_util.AddSubscription(nodeID, subscription)
+	err := db_util.AddSubscription(ctx, nodeID, subscription)
 
 	if err != nil {
 		w.Write([]byte("Error!\n"))
@@ -128,6 +160,7 @@ func Subscribe(w http.ResponseWriter, r *http.Request) {
 
 // SendRequest - Handle send request
 func SendRequest(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 
 	nodeID := string(params["nodeid"])
@@ -148,7 +181,7 @@ func SendRequest(w http.ResponseWriter, r *http.Request) {
 	req.RequestID = crypt_util.GetHash(req.Channel + req.NodeID + string(t.UnixNano()))
 	req.Active = true
 
-	err = db_util.AddRequest(req)
+	err = db_util.AddRequest(ctx, req)
 
 	if err != nil {
 		w.Write([]byte("Error!\n"))
@@ -166,6 +199,7 @@ var upgrader = websocket.Upgrader{
 
 // ReceiveResponse - receive responces from providers
 func ReceiveResponse(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("upgrade:", err)
@@ -178,13 +212,13 @@ func ReceiveResponse(w http.ResponseWriter, r *http.Request) {
 	log.Println("Request id:", requestID)
 
 	var cRequest type_util.ConsumerRequest
-	cRequest, err = db_util.GetPendingConsumerRequestByRequestID(requestID)
+	cRequest, err = db_util.GetPendingConsumerRequestByRequestID(ctx, requestID)
 	if err != nil || (type_util.ConsumerRequest{}) == cRequest {
 		return
 	}
 
 	var pbWrapper *type_util.RedisPubSubWrapper
-	pbWrapper, err = db_util.CreateChannel(cRequest.RequestID)
+	pbWrapper, err = db_util.CreateChannel(ctx, cRequest.RequestID)
 	defer pbWrapper.CloseChannel()
 	if err != nil {
 		return
@@ -208,6 +242,7 @@ func ReceiveResponse(w http.ResponseWriter, r *http.Request) {
 
 // ServeRequests - WebSocket based serving of requests
 func ServeRequests(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("upgrade:", err)
@@ -224,7 +259,7 @@ func ServeRequests(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("recv: %s", providerRequestJSON)
 
-		reqs, err := getRequests(providerRequestJSON)
+		reqs, err := getRequests(ctx, providerRequestJSON)
 		if err != nil {
 			log.Println("read:", err)
 			break
@@ -248,6 +283,7 @@ func ServeRequests(w http.ResponseWriter, r *http.Request) {
 
 // MakeOffer creates the offer
 func MakeOffer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 	nodeID := string(params["nodeid"])
 	requestID := string(params["requestid"])
@@ -261,7 +297,7 @@ func MakeOffer(w http.ResponseWriter, r *http.Request) {
 	ofr.OpenTime = t
 	ofr.Offer = offer
 
-	err := db_util.AddOffer(ofr)
+	err := db_util.AddOffer(ctx, ofr)
 	if err != nil {
 		w.Write([]byte("Error creating the offer"))
 		return
@@ -272,13 +308,14 @@ func MakeOffer(w http.ResponseWriter, r *http.Request) {
 
 // AcceptOffer accepts the offer for negitiations
 func AcceptOffer(w http.ResponseWriter, r *http.Request) {
-	offer, err := getAndValidateOffer(mux.Vars(r))
+	ctx := r.Context()
+	offer, err := getAndValidateOffer(ctx, mux.Vars(r))
 	if err != nil {
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	err = db_util.UpdateAcceptedOffer(offer.OfferKey)
+	err = db_util.UpdateAcceptedOffer(ctx, offer.OfferKey)
 	if err != nil {
 		w.Write([]byte("Error accepting the offer"))
 	}
@@ -291,13 +328,14 @@ func AcceptOffer(w http.ResponseWriter, r *http.Request) {
 
 // RejectOffer - confirm an offer
 func RejectOffer(w http.ResponseWriter, r *http.Request) {
-	offer, err := getAndValidateOffer(mux.Vars(r))
+	ctx := r.Context()
+	offer, err := getAndValidateOffer(ctx, mux.Vars(r))
 	if err != nil {
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	err = db_util.UpdateRejectedOffer(offer.OfferKey)
+	err = db_util.UpdateRejectedOffer(ctx, offer.OfferKey)
 	if err != nil {
 		w.Write([]byte("Error rejecting the offer"))
 	}
@@ -309,6 +347,7 @@ func RejectOffer(w http.ResponseWriter, r *http.Request) {
 
 // NegotiateOffer - listen and negotiate the offer
 func NegotiateOffer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("upgrade:", err)
@@ -325,7 +364,7 @@ func NegotiateOffer(w http.ResponseWriter, r *http.Request) {
 	log.Println("Offer id:", offerID)
 
 	var pbWrapper *type_util.RedisPubSubWrapper
-	pbWrapper, err = db_util.CreateChannel(offerID)
+	pbWrapper, err = db_util.CreateChannel(ctx, offerID)
 	defer pbWrapper.CloseChannel()
 	if err != nil {
 		return
@@ -338,7 +377,7 @@ func NegotiateOffer(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if msg1 != nil {
-			err = db_util.PublishMessage(offerID, string(msg1))
+			err = db_util.PublishMessage(ctx, offerID, string(msg1))
 		}
 
 		msg2, err := db_util.ReceiveMessage(pbWrapper)
@@ -358,9 +397,10 @@ func NegotiateOffer(w http.ResponseWriter, r *http.Request) {
 
 // Complete handles the complete process
 func Complete(w http.ResponseWriter, r *http.Request) {
-	cRequest, err := getAndValidateRequest(mux.Vars(r))
+	ctx := r.Context()
+	cRequest, err := getAndValidateRequest(ctx, mux.Vars(r))
 
-	err = db_util.CompleteConsumerRequest(cRequest.ConsumerRequestKey)
+	err = db_util.CompleteConsumerRequest(ctx, cRequest.ConsumerRequestKey)
 	if err != nil {
 		w.Write([]byte("Error completing the offer"))
 	}
@@ -377,6 +417,7 @@ func Feedback(w http.ResponseWriter, r *http.Request) {
 
 // UpdateLocation periodically updates the location of a node
 func UpdateLocation(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 	nodeID := string(params["nodeid"])
 	lattitude, err := strconv.ParseFloat(params["lat"], 64)
@@ -385,7 +426,7 @@ func UpdateLocation(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Invalid location!\n"))
 	}
 
-	err = db_util.AddUpdateLocation(nodeID, type_util.Location{Lat: lattitude, Lon: longitude})
+	err = db_util.AddUpdateLocation(ctx, nodeID, type_util.Location{Lat: lattitude, Lon: longitude})
 	if err != nil {
 		w.Write([]byte("Error updating location!\n"))
 	}
@@ -395,12 +436,13 @@ func UpdateLocation(w http.ResponseWriter, r *http.Request) {
 
 // RefreshKeys periodically refreshes the key pair
 func RefreshKeys(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 	nodeID := string(params["nodeid"])
 	oldPvtKey := string(params["oldpvtkey"])
 
 	//TODO - Validations
-	node, err := db_util.GetNode(nodeID)
+	node, err := db_util.GetNode(ctx, nodeID)
 	if err != nil {
 		w.Write([]byte("Error!\n"))
 		return
@@ -424,7 +466,7 @@ func RefreshKeys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save the keys in the db
-	err = db_util.SaveKeys(nodeID, privateKey, publicKey)
+	err = db_util.SaveKeys(ctx, nodeID, privateKey, publicKey)
 	if err != nil {
 		w.Write([]byte("Error saving keys!\n"))
 		return
@@ -436,9 +478,10 @@ func RefreshKeys(w http.ResponseWriter, r *http.Request) {
 
 // CancelRequest cancels a given consumer request
 func CancelRequest(w http.ResponseWriter, r *http.Request) {
-	cRequest, err := getAndValidateRequest(mux.Vars(r))
+	ctx := r.Context()
+	cRequest, err := getAndValidateRequest(ctx, mux.Vars(r))
 
-	err = db_util.CancelConsumerRequest(cRequest.ConsumerRequestKey)
+	err = db_util.CancelConsumerRequest(ctx, cRequest.ConsumerRequestKey)
 	if err != nil {
 		w.Write([]byte("Error rejecting the offer"))
 	}

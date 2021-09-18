@@ -1,4 +1,4 @@
 
-@node = {"id":"5c29be96-8450-4c6b-9fe2-4efad3f74bd5","active":false,"mobile":"+94777740359","vcode":"test","gender":"test","bday":"2031-09-21T23:20:10+05:30","location":{"lon":6.80189,"lat":79.893214},"availability":true}
+@node = {"id":"5c29be96-8450-4c6b-9fe2-4efad3f74bd6","active":false,"mobile":"+94777740359","vcode":"test","gender":"test","bday":"2031-09-21T23:20:10+05:30","location":{"lon":6.80189,"lat":79.893214},"availability":true}
 POST http://localhost:8000/api/v1/register/{{node}}
 content-type: application/json

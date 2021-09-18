@@ -1,0 +1,118 @@
+basePath: /
+definitions:
+  types.Key:
+    properties:
+      privatekey:
+        type: string
+      publickey:
+        type: string
+    type: object
+  types.Location:
+    properties:
+      lat:
+        type: number
+      lon:
+        type: number
+    type: object
+  types.Node:
+    properties:
+      active:
+        type: boolean
+      availability:
+        type: boolean
+      bday:
+        type: string
+      gender:
+        type: string
+      id:
+        type: string
+      key:
+        $ref: '#/definitions/types.Key'
+      location:
+        $ref: '#/definitions/types.Location'
+      mobile:
+        type: string
+      rating:
+        $ref: '#/definitions/types.Rating'
+      subscription:
+        items:
+          $ref: '#/definitions/types.Subscription'
+        type: array
+      vcode:
+        type: string
+    type: object
+  types.Rating:
+    properties:
+      courtesy:
+        description: Both
+        type: number
+      noofCancelledRequests:
+        description: Consumer
+        type: integer
+      noofServicesDelivered:
+        description: Provider
+        type: integer
+      offersAccepted:
+        description: Consumer
+        type: integer
+      offersMade:
+        description: Provider
+        type: integer
+      offersRejected:
+        description: Consumer
+        type: integer
+      price:
+        description: Provider
+        type: number
+      promptPayment:
+        description: Consumer
+        type: number
+      quality:
+        description: Provider
+        type: number
+      recommendNo:
+        description: Provider
+        type: integer
+      recommendYes:
+        description: Provider
+        type: integer
+      speed:
+        description: Provider
+        type: number
+    type: object
+  types.Subscription:
+    properties:
+      as:
+        type: string
+      channel:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: soberkoder@swagger.io
+    name: API Support
+  description: This is a sample serice for managing orders
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: ANTICAP API
+  version: "1.0"
+paths:
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Register handles the register node functionality
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.Node'
+      summary: Register handles the register node functionality
+      tags:
+      - register
+swagger: "2.0"

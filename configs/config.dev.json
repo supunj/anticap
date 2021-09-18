@@ -13,7 +13,7 @@
     }
   },
   "log" : {
-    "outout" : "console",
+    "output" : "console",
     "default-log-file-path" : "/tmp/thexapp.log"
   },
   "ssl" : {

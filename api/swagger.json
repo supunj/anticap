@@ -1,0 +1,173 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a sample serice for managing orders",
+        "title": "ANTICAP API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "email": "soberkoder@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/register": {
+            "post": {
+                "description": "Register handles the register node functionality",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "register"
+                ],
+                "summary": "Register handles the register node functionality",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/types.Node"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "types.Key": {
+            "type": "object",
+            "properties": {
+                "privatekey": {
+                    "type": "string"
+                },
+                "publickey": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.Location": {
+            "type": "object",
+            "properties": {
+                "lat": {
+                    "type": "number"
+                },
+                "lon": {
+                    "type": "number"
+                }
+            }
+        },
+        "types.Node": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "availability": {
+                    "type": "boolean"
+                },
+                "bday": {
+                    "type": "string"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "key": {
+                    "$ref": "#/definitions/types.Key"
+                },
+                "location": {
+                    "$ref": "#/definitions/types.Location"
+                },
+                "mobile": {
+                    "type": "string"
+                },
+                "rating": {
+                    "$ref": "#/definitions/types.Rating"
+                },
+                "subscription": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Subscription"
+                    }
+                },
+                "vcode": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.Rating": {
+            "type": "object",
+            "properties": {
+                "courtesy": {
+                    "description": "Both",
+                    "type": "number"
+                },
+                "noofCancelledRequests": {
+                    "description": "Consumer",
+                    "type": "integer"
+                },
+                "noofServicesDelivered": {
+                    "description": "Provider",
+                    "type": "integer"
+                },
+                "offersAccepted": {
+                    "description": "Consumer",
+                    "type": "integer"
+                },
+                "offersMade": {
+                    "description": "Provider",
+                    "type": "integer"
+                },
+                "offersRejected": {
+                    "description": "Consumer",
+                    "type": "integer"
+                },
+                "price": {
+                    "description": "Provider",
+                    "type": "number"
+                },
+                "promptPayment": {
+                    "description": "Consumer",
+                    "type": "number"
+                },
+                "quality": {
+                    "description": "Provider",
+                    "type": "number"
+                },
+                "recommendNo": {
+                    "description": "Provider",
+                    "type": "integer"
+                },
+                "recommendYes": {
+                    "description": "Provider",
+                    "type": "integer"
+                },
+                "speed": {
+                    "description": "Provider",
+                    "type": "number"
+                }
+            }
+        },
+        "types.Subscription": {
+            "type": "object",
+            "properties": {
+                "as": {
+                    "type": "string"
+                },
+                "channel": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

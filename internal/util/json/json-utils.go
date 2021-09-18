@@ -56,3 +56,11 @@ func GetObject(jsn []byte, typ reflect.Type) (interface{}, error) {
 	}
 	return obj, err
 }
+
+func GetJSON(obj interface{}) ([]byte, error) {
+	return json.Marshal(obj)
+}
+
+func GetCommonErrorResponse(errorresponse type_util.CommonErrorResponse) ([]byte, error) {
+	return json.Marshal(errorresponse)
+}

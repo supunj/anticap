@@ -4,11 +4,16 @@ package api
 
 import (
 	"github.com/gorilla/mux"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // RegisterRoutes - Register routes
 func RegisterRoutes() *mux.Router {
 	router := mux.NewRouter()
+
+	// Swagger documentation
+	router.PathPrefix("/swagger").Handler(httpSwagger.WrapHandler)
+
 	// Routes consist of a path and a handler function.
 	router.HandleFunc("/api/v1/register/{node}", Register).Methods("POST")
 	router.HandleFunc("/api/v1/verify/{nodeid}/{vcode}", Verify).Methods("PUT")

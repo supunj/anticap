@@ -3,12 +3,13 @@
 package db
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	type_util "github.com/supunj/anticap/internal/types"
 	config_util "github.com/supunj/anticap/internal/util/config"
 	crypt_util "github.com/supunj/anticap/internal/util/crypt"
@@ -16,7 +17,7 @@ import (
 )
 
 // SaveNode - Save node to DB
-func SaveNode(node type_util.Node) (string, error) {
+func SaveNode(ctx context.Context, node type_util.Node) (string, error) {
 	var m = make(map[string]interface{})
 	m["node.active"] = node.Active
 	m["node.mobile"] = node.Mobile
@@ -26,14 +27,14 @@ func SaveNode(node type_util.Node) (string, error) {
 
 	hashedNodeID := crypt_util.GetHash(node.ID)
 
-	return hashedNodeID, addUpdate(GetNodeKey(hashedNodeID), m)
+	return hashedNodeID, addUpdate(ctx, GetNodeKey(hashedNodeID), m)
 }
 
 // GetNode - Save node to DB
-func GetNode(nodeID string) (type_util.Node, error) {
+func GetNode(ctx context.Context, nodeID string) (type_util.Node, error) {
 	var node type_util.Node
 
-	nodeValues, err := db_util.NodesDB.HGetAll(fmt.Sprintf("%s%s", "node:", nodeID)).Result()
+	nodeValues, err := db_util.NodesDB.HGetAll(ctx, fmt.Sprintf("%s%s", "node:", nodeID)).Result()
 	if err != nil {
 		goto End
 	}
@@ -48,32 +49,32 @@ End:
 }
 
 // ActivateNode - Make both node and the avatar active
-func ActivateNode(nodeID string) error {
+func ActivateNode(ctx context.Context, nodeID string) error {
 	var m = make(map[string]interface{})
 	m["node.active"] = true
 
-	return addUpdate(GetNodeKey(nodeID), m)
+	return addUpdate(ctx, GetNodeKey(nodeID), m)
 }
 
 // SaveKeys stores the key pair generated for a node
-func SaveKeys(nodeID string, privateKey string, publicKey string) error {
+func SaveKeys(ctx context.Context, nodeID string, privateKey string, publicKey string) error {
 	var m = make(map[string]interface{})
 	m["node.key.publickey"] = publicKey
 	m["node.key.privatekey"] = privateKey
 
-	return addUpdate(GetNodeKey(nodeID), m)
+	return addUpdate(ctx, GetNodeKey(nodeID), m)
 }
 
 // AddSubscription - Add subscription details
-func AddSubscription(nodeID string, subscription type_util.Subscription) error {
+func AddSubscription(ctx context.Context, nodeID string, subscription type_util.Subscription) error {
 	var m = make(map[string]interface{})
 	m["node.subscription."+subscription.Channel] = subscription.Channel + "|" + subscription.As
 
-	return addUpdate(GetNodeKey(nodeID), m)
+	return addUpdate(ctx, GetNodeKey(nodeID), m)
 }
 
 // AddRequest - Add request
-func AddRequest(cRequest type_util.ConsumerRequest) error {
+func AddRequest(ctx context.Context, cRequest type_util.ConsumerRequest) error {
 	var m = make(map[string]interface{})
 	m["request.nodeid"] = cRequest.NodeID
 	m["request.requestid"] = cRequest.RequestID
@@ -85,43 +86,43 @@ func AddRequest(cRequest type_util.ConsumerRequest) error {
 	m["request.active"] = cRequest.Active
 
 	key := GetPendingRequestKey(cRequest.Channel, cRequest.RequestID)
-	return addUpdate(key, m)
+	return addUpdate(ctx, key, m)
 }
 
 // Add or update attributes in a key
-func addUpdate(key string, values map[string]interface{}) error {
-	hash, err := db_util.NodesDB.HMSet(key, values).Result()
+func addUpdate(ctx context.Context, key string, values map[string]interface{}) error {
+	hash, err := db_util.NodesDB.HSet(ctx, key, values).Result()
 
 	if err != nil {
 		return err
 	}
 
-	config_util.Log.Println("Hash" + hash)
+	config_util.Log.Println(hash)
 
 	return nil
 }
 
 // GetPendingConsumerRequests - get the list of all active requests
-func GetPendingConsumerRequests(channel string, resultCount int64) (type_util.ConsumerRequestList, error) {
-	return GetPendingConsumerRequestsByHash(GetPendingRequestKey(channel, "*"), resultCount)
+func GetPendingConsumerRequests(ctx context.Context, channel string, resultCount int64) (type_util.ConsumerRequestList, error) {
+	return GetPendingConsumerRequestsByHash(ctx, GetPendingRequestKey(channel, "*"), resultCount)
 }
 
 // GetPendingConsumerRequestByRequestID - get the consumer request for a given request id
-func GetPendingConsumerRequestByRequestID(requestID string) (type_util.ConsumerRequest, error) {
-	cReq, err := GetPendingConsumerRequestsByHash(GetPendingRequestKey("*", requestID), 1)
+func GetPendingConsumerRequestByRequestID(ctx context.Context, requestID string) (type_util.ConsumerRequest, error) {
+	cReq, err := GetPendingConsumerRequestsByHash(ctx, GetPendingRequestKey("*", requestID), 1)
 
 	return cReq.Requests[0], err
 }
 
 // GetPendingConsumerRequestsByHash - get the pending consumer requests for a given hash
-func GetPendingConsumerRequestsByHash(hash string, resultCount int64) (type_util.ConsumerRequestList, error) {
+func GetPendingConsumerRequestsByHash(ctx context.Context, hash string, resultCount int64) (type_util.ConsumerRequestList, error) {
 	var crl type_util.ConsumerRequestList
 	var err error
 	var cr type_util.ConsumerRequest
 
-	iter := db_util.NodesDB.Scan(0, hash, resultCount).Iterator()
-	for iter.Next() {
-		cr, err = GetConsumerRequest(iter.Val())
+	iter := db_util.NodesDB.Scan(ctx, 0, hash, resultCount).Iterator()
+	for iter.Next(ctx) {
+		cr, err = GetConsumerRequest(ctx, iter.Val())
 		if err != nil {
 			break
 		}
@@ -140,8 +141,8 @@ func GetPendingConsumerRequestsByHash(hash string, resultCount int64) (type_util
 }
 
 // GetConsumerRequest - Get consumer request from a given hash
-func GetConsumerRequest(hash string) (type_util.ConsumerRequest, error) {
-	cRequest, err := db_util.NodesDB.HGetAll(hash).Result()
+func GetConsumerRequest(ctx context.Context, hash string) (type_util.ConsumerRequest, error) {
+	cRequest, err := db_util.NodesDB.HGetAll(ctx, hash).Result()
 
 	var uot, uct int64
 
@@ -167,11 +168,11 @@ func GetConsumerRequest(hash string) (type_util.ConsumerRequest, error) {
 }
 
 // CreateChannel - Create the channel by the given name
-func CreateChannel(redisChannel string) (*type_util.RedisPubSubWrapper, error) {
-	pubsub := db_util.NodesDB.Subscribe(redisChannel)
+func CreateChannel(ctx context.Context, redisChannel string) (*type_util.RedisPubSubWrapper, error) {
+	pubsub := db_util.NodesDB.Subscribe(ctx, redisChannel)
 
 	// Wait for confirmation that subscription is created before publishing anything.
-	_, err := pubsub.Receive()
+	_, err := pubsub.Receive(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -182,7 +183,7 @@ func CreateChannel(redisChannel string) (*type_util.RedisPubSubWrapper, error) {
 	return &(type_util.RedisPubSubWrapper{PubSub: pubsub, Msg: ch}), err
 }
 
-// ReceiveMessage - receive responces from the channel
+// ReceiveMessage - receive responses from the channel
 func ReceiveMessage(redisWrapper *type_util.RedisPubSubWrapper) (string, error) {
 	msg, ok := <-redisWrapper.Msg
 
@@ -196,13 +197,13 @@ func ReceiveMessage(redisWrapper *type_util.RedisPubSubWrapper) (string, error) 
 }
 
 // PublishMessage publishes a message to the given topic
-func PublishMessage(channel string, msg string) error {
-	return db_util.NodesDB.Publish(channel, msg).Err()
+func PublishMessage(ctx context.Context, channel string, msg string) error {
+	return db_util.NodesDB.Publish(ctx, channel, msg).Err()
 }
 
 // AddUpdateLocation is the method that updates a node's location periodically
-func AddUpdateLocation(nodeID string, location type_util.Location) error {
-	geoAdd := db_util.NodesDB.GeoAdd(
+func AddUpdateLocation(ctx context.Context, nodeID string, location type_util.Location) error {
+	geoAdd := db_util.NodesDB.GeoAdd(ctx,
 		GetNodeLocationKey(nodeID),
 		&redis.GeoLocation{Longitude: location.Lon, Latitude: location.Lat, Name: nodeID},
 	)
@@ -211,7 +212,7 @@ func AddUpdateLocation(nodeID string, location type_util.Location) error {
 }
 
 // AddOffer creates the offer in the db
-func AddOffer(offer type_util.Offer) error {
+func AddOffer(ctx context.Context, offer type_util.Offer) error {
 	var m = make(map[string]interface{})
 	m["offer.nodeid"] = offer.NodeID
 	m["offer.requestid"] = offer.RequestID
@@ -220,25 +221,25 @@ func AddOffer(offer type_util.Offer) error {
 	m["offer.opentime"] = offer.OpenTime.UnixNano()
 
 	key := GetOfferKey(offer.RequestID, offer.OfferID)
-	return addUpdate(key, m)
+	return addUpdate(ctx, key, m)
 }
 
 // GetOfferByOfferID retrieves and returns the offer by the offer id
-func GetOfferByOfferID(offerID string) (type_util.Offer, error) {
-	offer, err := GetOffersByHash(GetOfferKey("*", offerID), 1)
+func GetOfferByOfferID(ctx context.Context, offerID string) (type_util.Offer, error) {
+	offer, err := GetOffersByHash(ctx, GetOfferKey("*", offerID), 1)
 
 	return offer.Offers[0], err
 }
 
 // GetOffersByHash returns the list of offers for a given hash
-func GetOffersByHash(hash string, resultCount int64) (type_util.OfferList, error) {
+func GetOffersByHash(ctx context.Context, hash string, resultCount int64) (type_util.OfferList, error) {
 	var ofl type_util.OfferList
 	var err error
 	var of type_util.Offer
 
-	iter := db_util.NodesDB.Scan(0, hash, resultCount).Iterator()
-	for iter.Next() {
-		of, err = GetOffer(iter.Val())
+	iter := db_util.NodesDB.Scan(ctx, 0, hash, resultCount).Iterator()
+	for iter.Next(ctx) {
+		of, err = GetOffer(ctx, iter.Val())
 		if err != nil {
 			break
 		}
@@ -257,9 +258,9 @@ func GetOffersByHash(hash string, resultCount int64) (type_util.OfferList, error
 }
 
 // GetOffer returns the offer
-func GetOffer(hash string) (type_util.Offer, error) {
+func GetOffer(ctx context.Context, hash string) (type_util.Offer, error) {
 	var of type_util.Offer
-	offer, err := db_util.NodesDB.HGetAll(hash).Result()
+	offer, err := db_util.NodesDB.HGetAll(ctx, hash).Result()
 	if err != nil {
 		goto End
 	}
@@ -287,26 +288,26 @@ End:
 }
 
 // UpdateAcceptedOffer updates the accepted offer
-func UpdateAcceptedOffer(offerKey string) error {
-	return RenameKey(offerKey, GetAcceptedOfferKey(offerKey))
+func UpdateAcceptedOffer(ctx context.Context, offerKey string) error {
+	return RenameKey(ctx, offerKey, GetAcceptedOfferKey(offerKey))
 }
 
 // RenameKey renames the given key to the other
-func RenameKey(fromKey string, toKey string) error {
-	return db_util.NodesDB.Rename(fromKey, toKey).Err()
+func RenameKey(ctx context.Context, fromKey string, toKey string) error {
+	return db_util.NodesDB.Rename(ctx, fromKey, toKey).Err()
 }
 
 // UpdateRejectedOffer updates the accepted offer
-func UpdateRejectedOffer(offerKey string) error {
-	return RenameKey(offerKey, GetRejectedOfferKey(offerKey))
+func UpdateRejectedOffer(ctx context.Context, offerKey string) error {
+	return RenameKey(ctx, offerKey, GetRejectedOfferKey(offerKey))
 }
 
 // CancelConsumerRequest cancels a pending consumer request
-func CancelConsumerRequest(consumerRequestKey string) error {
-	return RenameKey(consumerRequestKey, GetCancelledConsumerRequestKey(consumerRequestKey))
+func CancelConsumerRequest(ctx context.Context, consumerRequestKey string) error {
+	return RenameKey(ctx, consumerRequestKey, GetCancelledConsumerRequestKey(consumerRequestKey))
 }
 
 // CompleteConsumerRequest completes a pending consumer request
-func CompleteConsumerRequest(consumerRequestKey string) error {
-	return RenameKey(consumerRequestKey, GetCancelledConsumerRequestKey(consumerRequestKey))
+func CompleteConsumerRequest(ctx context.Context, consumerRequestKey string) error {
+	return RenameKey(ctx, consumerRequestKey, GetCancelledConsumerRequestKey(consumerRequestKey))
 }

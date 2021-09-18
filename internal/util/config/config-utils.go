@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/viper"
 )
@@ -14,7 +15,8 @@ func LoadConfig(configFile string) error {
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
-		viper.SetConfigFile("/mnt/hdd1/gitlab/anticap/configs/config.dev.json")
+		currentfolderPath, _ := os.Getwd()
+		viper.SetConfigFile(currentfolderPath + "/configs/config.dev.json")
 	}
 	// Find and read the config file
 	if err := viper.ReadInConfig(); err != nil {

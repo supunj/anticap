@@ -7,22 +7,22 @@ package types
 import (
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 )
 
 // Node type
 type Node struct {
-	ID           string         `json:"id"`
-	Active       bool           `json:"active"`
-	Mobile       string         `json:"mobile"`
-	VCode        string         `json:"vcode"`
-	Gender       string         `json:"gender"`
-	BirthDate    time.Time      `json:"bday"`
-	Location     Location       `json:"location"`
-	Availability bool           `json:"availability"`
-	Secret       Key            `json:"key"`
-	Rating       Rating         `json:"rating"`
-	Subscription []Subscription `json:"subscription"`
+	ID           string         `json:"id,omitempty"`
+	Active       bool           `json:"active,omitempty"`
+	Mobile       string         `json:"mobile,omitempty"`
+	VCode        string         `json:"vcode,omitempty"`
+	Gender       string         `json:"gender,omitempty"`
+	BirthDate    time.Time      `json:"bday,omitempty"`
+	Location     Location       `json:"location,omitempty"`
+	Availability bool           `json:"availability,omitempty"`
+	Secret       Key            `json:"key,omitempty"`
+	Rating       Rating         `json:"rating,omitempty"`
+	Subscription []Subscription `json:"subscription,omitempty"`
 }
 
 // Location type
@@ -39,18 +39,17 @@ type Key struct {
 
 // Rating - Holds all ratings
 type Rating struct {
-	Quality               float32 // Provider
-	Courtesy              float32 // Both
-	Price                 float32 // Provider
-	Speed                 float32 // Provider
-	OffersMade            int32   // Provider
-	OffersAccepted        int32   // Consumer
-	OffersRejected        int32   // Consumer
-	RecommendYes          int32   // Provider
-	RecommendNo           int32   // Provider
-	NoofServicesDelivered int32   // Provider
-	PromptPayment         float32 // Consumer
-	NoofCancelledRequests int32   // Consumer
+	Quality               float32 `json:"quality,omitempty"`                  // Provider
+	Courtesy              float32 `json:"courtesy,omitempty"`                 // Both
+	Price                 float32 `json:"price,omitempty"`                    // Provider
+	OffersMade            int32   `json:"offers_made,omitempty"`              // Provider
+	OffersAccepted        int32   `json:"offers_accepted,omitempty"`          // Consumer
+	OffersRejected        int32   `json:"offers_rejected,omitempty"`          // Consumer
+	RecommendYes          int32   `json:"recommend_yes,omitempty"`            // Provider
+	RecommendNo           int32   `json:"recommend_no,omitempty"`             // Provider
+	NoofServicesDelivered int32   `json:"no_of_services_delivered,omitempty"` // Provider
+	PromptPayment         float32 `json:"prompt_payment,omitempty"`           // Consumer
+	NoofCancelledRequests int32   `json:"no_of_cancelled_requests,omitempty"` // Consumer
 }
 
 // Subscription details
@@ -152,4 +151,11 @@ type OfferList struct {
 func (ofl *OfferList) AddOffer(of Offer) []Offer {
 	ofl.Offers = append(ofl.Offers, of)
 	return ofl.Offers
+}
+
+// CommonErrorResponse is the error response commonly used to return an error
+type CommonErrorResponse struct {
+	ErrorSource  string `json:"error_source,omitempty"`
+	ErrorCode    string `json:"error_code,omitempty"`
+	ErrorMessage string `json:"error_message,omitempty"`
 }
